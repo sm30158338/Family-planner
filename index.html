@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Family Hub</title>
+<style>
+  :root {
+    --bg: #10141c;
+    --panel: #1a2030;
+    --panel-2: #212a3e;
+    --text: #e8ecf4;
+    --muted: #8b94a8;
+    --accent: #5b9bd5;
+    --accent-2: #f2b544;
+    --good: #62c370;
+    --danger: #e06c5f;
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #dim-overlay {
+    position: fixed; inset: 0; background: #000; opacity: 0;
+    pointer-events: none; z-index: 9999; transition: opacity 3s ease;
+  }
+  .app { display: flex; flex-direction: column; height: 100vh; padding: 14px; gap: 14px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 10px; flex: 0 0 auto;
+  }
+  .clock { font-size: 52px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
+  .clock .sec { font-size: 22px; color: var(--muted); font-weight: 500; }
+  .date-line { font-size: 20px; color: var(--muted); margin-top: 4px; }
+  #gear-btn {
+    background: none; border: none; color: var(--muted); font-size: 26px;
+    cursor: pointer; padding: 8px 12px; border-radius: 10px;
+  }
+  #gear-btn:active { background: var(--panel-2); }
+
+  /* ---------- main grid ---------- */
+  main { display: flex; gap: 14px; flex: 1 1 auto; min-height: 0; }
+  .card {
+    background: var(--panel); border-radius: var(--radius);
+    display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+  }
+  .card h2 {
+    font-size: 15px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); padding: 14px 20px 8px; flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #calendar-card { flex: 3 1 0; }
+  #side-col { flex: 2 1 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  /* calendar */
+  .cal-tabs { display: flex; gap: 8px; padding: 0 20px 10px; flex: 0 0 auto; }
+  .cal-tabs button {
+    background: var(--panel-2); border: none; color: var(--muted);
+    font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+  }
+  .cal-tabs button.active { background: var(--accent); color: #fff; }
+  #cal-embed {
+    flex: 1 1 auto; border: none; width: 100%; background: #fff; border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  /* weather */
+  #weather-card { flex: 0 0 auto; }
+  .weather-body { display: flex; align-items: center; padding: 4px 20px 18px; gap: 18px; flex-wrap: wrap; }
+  .w-now { display: flex; align-items: baseline; gap: 6px; }
+  .w-temp { font-size: 46px; font-weight: 700; }
+  .w-desc { color: var(--muted); font-size: 16px; max-width: 160px; }
+  .w-forecast { display: flex; gap: 18px; margin-left: auto; }
+  .w-day { text-align: center; }
+  .w-day .d { font-size: 13px; color: var(--muted); text-transform: uppercase; }
+  .w-day .hi { font-size: 19px; font-weight: 600; }
+  .w-day .lo { font-size: 14px; color: var(--muted); }
+
+  /* chores */
+  #chores-card { flex: 1 1 auto; min-height: 0; }
+  #stars-summary {
+    margin-left: auto; font-size: 14px; color: var(--accent-2); font-weight: 600;
+    text-transform: none; letter-spacing: 0;
+  }
+  .chores-body { flex: 1 1 auto; overflow-y: auto; padding: 2px 14px 14px; }
+  .person-filter { display: flex; gap: 8px; padding: 4px 20px 10px; flex-wrap: wrap; flex: 0 0 auto; }
+  .person-filter button {
+    background: var(--panel-2); border: 2px solid transparent; color: var(--text);
+    font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .person-filter button.selected { border-color: var(--accent); background: rgba(91,155,213,.18); }
+  .person-filter button .st { color: var(--accent-2); margin-left: 6px; }
+  .chore-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--panel-2); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer; user-select: none;
+  }
+  .chore-row .box {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+    border: 2.5px solid var(--muted); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: transparent; transition: all .15s ease;
+  }
+  .chore-row.done .box { background: var(--good); border-color: var(--good); color: #fff; }
+  .chore-row .label { flex: 1 1 auto; font-size: 18px; font-weight: 500; }
+  .chore-row.done .label { color: var(--muted); text-decoration: line-through; }
+  .chore-row .for {
+    flex: 0 0 auto; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 6px; color: #fff;
+  }
+  .empty-note { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 15px; }
+
+  /* ---------- settings panel ---------- */
+  #settings {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(8,10,15,.78); display: none;
+    align-items: center; justify-content: center;
+  }
+  #settings.open { display: flex; }
+  .settings-box {
+    background: var(--panel); border-radius: var(--radius); width: min(92vw, 640px);
+    max-height: 88vh; overflow-y: auto; padding: 26px;
+  }
+  .settings-box h3 { font-size: 20px; margin-bottom: 18px; display: flex; align-items: center; }
+  .settings-box h3 button { margin-left: auto; }
+  .settings-section { background: var(--panel-2); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .settings-section h4 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+  .settings-section input[type=text] {
+    width: 100%; background: var(--bg); border: 1px solid #33405c; color: var(--text);
+    border-radius: 8px; padding: 10px 12px; font-size: 16px; margin-bottom: 8px;
+  }
+  .row-flex { display: flex; gap: 8px; align-items: center; }
+  .row-flex input { flex: 1 1 auto; margin-bottom: 0; }
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid #33405c; }
+  .btn.danger { background: none; color: var(--danger); font-size: 20px; padding: 4px 10px; flex: 0 0 auto; }
+  .btn.small { padding: 6px 12px; font-size: 14px; }
+  .settings-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+  .person-line { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .person-line input { flex: 1 1 auto; }
+  .settings-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  select {
+    background: var(--panel-2); color: var(--text); border: 1px solid #33405c;
+    border-radius: 8px; padding: 10px 12px; font-size: 15px; margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div>
+      <div class="clock" id="clock">--:--<span class="sec">:--</span></div>
+      <div class="date-line" id="dateline">Loading…</div>
+    </div>
+    <button id="gear-btn" title="Settings">⚙️</button>
+  </header>
+
+  <main>
+    <div class="card" id="calendar-card">
+      <h2>Calendar</h2>
+      <div class="cal-tabs">
+        <button data-mode="MONTH" class="active">Month</button>
+        <button data-mode="WEEK">Week</button>
+        <button data-mode="AGENDA">List</button>
+      </div>
+      <iframe id="cal-embed" title="Family Calendar"></iframe>
+    </div>
+
+    <div id="side-col">
+      <div class="card" id="weather-card">
+        <h2><span id="w-city">Weather</span></h2>
+        <div class="weather-body" id="weather-body">
+          <div class="w-desc">Loading weather…</div>
+        </div>
+      </div>
+
+      <div class="card" id="chores-card">
+        <h2>Chores <span id="stars-summary"></span></h2>
+        <div class="person-filter" id="person-filter"></div>
+        <div class="chores-body" id="chores-body"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="settings">
+  <div class="settings-box">
+    <h3>Settings <button class="btn ghost" id="close-settings">Close</button></h3>
+
+    <div class="settings-section">
+      <h4>Family members</h4>
+      <div id="people-editor"></div>
+      <button class="btn small ghost" id="add-person">+ Add person</button>
+    </div>
+
+    <div class="settings-section">
+      <h4>Add a chore</h4>
+      <div class="row-flex">
+        <input type="text" id="new-chore-name" placeholder="Chore, e.g. Take out trash">
+        <select id="new-chore-who"></select>
+      </div>
+      <div class="settings-note">Everyone can claim a chore in the "Anyone" bucket.</div>
+      <button class="btn small" id="add-chore" style="margin-top:10px">+ Add chore</button>
+    </div>
+
+    <div class="settings-section">
+      <h4>Current chores &amp; star totals</h4>
+      <div id="chores-editor"></div>
+    </div>
+
+    <div class="settings-section">
+      <h4>Reset</h4>
+      <button class="btn ghost" id="reset-stars">Reset ⭐ star totals</button>
+      <button class="btn ghost" id="reset-all" style="margin-left:8px">Reset everything</button>
+      <div class="settings-note">"Reset everything" restores this tablet to a fresh install (chores and people wiped).</div>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn" id="save-settings">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="dim-overlay"></div>
+
+<script>
+/* ============================================================
+   FAMILY HUB  —  standalone dashboard for an Amazon Fire tablet
+   ------------------------------------------------------------
+   ONE-TIME SETUP (see README):
+   1. Paste your Google Calendar embed src into CALENDAR_SRC.
+   2. Type your town into CITY for weather.
+   Everything below (chores, people) is edited right on the
+   tablet via the ⚙️ button and saved on the tablet itself.
+   ============================================================ */
+
+const CONFIG = {
+  CALENDAR_SRC: "",            // e.g. "https://calendar.google.com/calendar/embed?src=xxxxx%40group.calendar.google.com&ctz=America/New_York"
+  CITY: "",                    // e.g. "Austin" or "Portland, OR"
+  TZ: "",                      // e.g. "America/New_York"  (blank = tablet's clock)
+  /* Night dimming: screen fades to black between these hours while staying on */
+  DIM_START: 22,               // 10 pm
+  DIM_END: 6,                  // 6 am
+  PALETTE: ["#5b9bd5", "#f28cb1", "#7ac74f", "#b57edc", "#f2b544", "#58c9b9"]
+};
+
+/* ---------- state ---------- */
+const store = {
+  load() {
+    try { return JSON.parse(localStorage.getItem("familyhub") || "null"); }
+    catch { return null; }
+  },
+  save(data) { localStorage.setItem("familyhub", JSON.stringify(data)); }
+};
+
+let data = store.load();
+if (!data) {
+  data = {
+    people: [{ name: "Mom" }, { name: "Dad" }],
+    chores: [],        // {name, who: -1 for anyone, personIndex or -1}
+    stars: {},         // personName -> total stars
+    starsToday: {},    // personName -> stars earned today
+    day: null          // "YYYY-MM-DD" of last completion day
+  };
+  store.save(data);
+}
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const WJ = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function todayStr() {
+  if (CONFIG.TZ) return new Date().toLocaleDateString("en-CA", { timeZone: CONFIG.TZ });
+  return new Date().toLocaleDateString("en-CA");
+}
+function rolloverDay() {
+  const d = todayStr();
+  if (data.day !== d) {
+    data.day = d;
+    data.chores.forEach(c => c.completed = false);
+    data.starsToday = {};
+    store.save(data);
+  }
+}
+
+/* ---------- clock & date ---------- */
+function tickClock() {
+  const opts = CONFIG.TZ ? { timeZone: CONFIG.TZ, hour: "numeric", minute: "2-digit", second: "2-digit" }
+                          : { hour: "numeric", minute: "2-digit", second: "2-digit" };
+  const now = new Date();
+  const t = now.toLocaleTimeString("en-US", opts);
+  const m = t.match(/^(.*):(\d\d)\s*(AM|PM)?$/i);
+  if (m) {
+    $("clock").innerHTML = m[1] + ":" + m[2] + "<span class='sec'>:" + m[2] + " " + (m[3] || "") + "</span>";
+  } else {
+    $("clock").textContent = t;
+  }
+  const dOpts = CONFIG.TZ ? { timeZone: CONFIG.TZ, weekday: "long", month: "long", day: "numeric" }
+                          : { weekday: "long", month: "long", day: "numeric" };
+  $("dateline").textContent = now.toLocaleDateString("en-US", dOpts);
+
+  // night dimming
+  const hr = now.getHours();
+  const dimmed = CONFIG.DIM_START > CONFIG.DIM_END
+    ? (hr >= CONFIG.DIM_START || hr < CONFIG.DIM_END)
+    : (hr >= CONFIG.DIM_START && hr < CONFIG.DIM_END);
+  $("dim-overlay").style.opacity = dimmed ? 0.86 : 0;
+}
+
+/* ---------- calendar ---------- */
+let calMode = "MONTH";
+function renderCalendar() {
+  const base = CONFIG.CALENDAR_SRC;
+  if (!base) {
+    $("cal-embed").srcdoc = "<body style='font-family:sans-serif;padding:36px;color:#444;font-size:16px'>" +
+      "<h2 style='margin-bottom:12px'>📅 Connect your calendar</h2>" +
+      "<p>Open this file in a text editor and paste your Google Calendar <b>embed link</b> into " +
+      "<code>CONFIG.CALENDAR_SRC</code> at the top of the script. See the README that came with this dashboard.</p>";
+    return;
+  }
+  const src = base.replace(/(&|\?)mode=\w*/g, "") + (base.includes("?") ? "&" : "?") + "mode=" + calMode;
+  $("cal-embed").src = src;
+}
+
+/* ---------- weather ---------- */
+let coords = null;
+async function loadWeather() {
+  const body = $("weather-body");
+  try {
+    if (!coords) {
+      let q = CONFIG.CITY;
+      if (!q) throw new Error("no city configured");
+      const g = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(q));
+      const gj = await g.json();
+      if (!gj.results || !gj.results.length) throw new Error("city not found");
+      coords = gj.results[0];
+      $("w-city").textContent = "Weather — " + coords.name;
+    }
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}` +
+              "&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&forecast_days=4";
+    const r = await fetch(u);
+    const w = await r.json();
+    const cur = w.current;
+    const desc = codeToText(cur.weather_code);
+    let html = `<div class="w-now"><span class="w-temp">${Math.round(cur.temperature_2m)}°</span>
+                <span class="w-desc">${desc}</span></div><div class="w-forecast">`;
+    for (let i = 1; i < 4 && i < w.daily.time.length; i++) {
+      const dt = new Date(w.daily.time[i] + "T12:00:00");
+      html += `<div class="w-day"><div class="d">${WJ[dt.getDay()]}</div>
+               <div class="hi">${Math.round(w.daily.temperature_2m_max[i])}°</div>
+               <div class="lo">${Math.round(w.daily.temperature_2m_min[i])}°</div></div>`;
+    }
+    html += "</div>";
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = `<div class="w-desc">Weather unavailable ${e.message === "no city configured" ? "— set CONFIG.CITY in the file" : ""}</div>`;
+  }
+}
+function codeToText(c) {
+  const t = {0:"Clear ☀️",1:"Mostly sunny 🌤️",2:"Partly cloudy ⛅",3:"Cloudy ☁️",45:"Fog 🌫️",48:"Fog 🌫️",
+    51:"Drizzle 🌦️",53:"Drizzle 🌦️",55:"Drizzle 🌦️",61:"Rain 🌧️",63:"Rain 🌧️",65:"Heavy rain 🌧️",
+    66:"Freezing rain 🌧️",67:"Freezing rain 🌧️",71:"Snow 🌨️",73:"Snow 🌨️",75:"Heavy snow ❄️",
+    77:"Snow grains 🌨️",80:"Showers 🌦️",81:"Showers 🌦️",82:"Heavy showers 🌊",85:"Snow showers 🌨️",
+    86:"Snow showers 🌨️",95:"Thunderstorm ⛈️",96:"Storm + hail ⛈️",99:"Storm + hail ⛈️"};
+  return t[c] || "—";
+}
+
+/* ---------- chores ---------- */
+let filterIndex = null; // null = everyone
+function personColor(i) { return CONFIG.PALETTE[i % CONFIG.PALETTE.length]; }
+
+function renderPeople() {
+  const pf = $("person-filter");
+  pf.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.textContent = "Everyone";
+  allBtn.className = filterIndex === null ? "selected" : "";
+  allBtn.onclick = () => { filterIndex = null; renderChores(); renderPeople(); };
+  pf.appendChild(allBtn);
+  data.people.forEach((p, i) => {
+    const b = document.createElement("button");
+    const st = data.stars[p.name] || 0;
+    b.innerHTML = `${p.name}<span class="st">⭐${st}</span>`;
+    b.className = filterIndex === i ? "selected" : "";
+    b.onclick = () => { filterIndex = filterIndex === i ? null : i; renderChores(); renderPeople(); };
+    b.style.borderColor = filterIndex === i ? personColor(i) : "";
+    pf.appendChild(b);
+  });
+  const total = Object.values(data.stars).reduce((a, b) => a + b, 0);
+  $("stars-summary").textContent = "⭐ " + total + " today's family total";
+}
+
+function renderChores() {
+  rolloverDay();
+  const body = $("chores-body");
+  body.innerHTML = "";
+  const list = data.chores
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => filterIndex === null || c.who === -1 || c.who === filterIndex);
+  if (!list.length) {
+    body.innerHTML = "<div class='empty-note'>No chores yet — tap ⚙️ to add some!</div>";
+    return;
+  }
+  list.forEach(({ c, i }) => {
+    const row = document.createElement("div");
+    row.className = "chore-row" + (c.completed ? " done" : "");
+    const box = document.createElement("div"); box.className = "box"; box.textContent = "✓";
+    const label = document.createElement("div"); label.className = "label"; label.textContent = c.name;
+    const owner = document.createElement("div"); owner.className = "for";
+    owner.textContent = c.who === -1 ? "Anyone" : data.people[c.who].name;
+    owner.style.background = c.who === -1 ? "#56617a" : personColor(c.who);
+    row.append(box, label, owner);
+    row.onclick = () => {
+      c.completed = !c.completed;
+      rolloverDay();
+      if (c.completed) {
+        const name = c.who === -1 ? (filterIndex !== null && filterIndex >= 0 ? data.people[filterIndex].name : null)
+                                  : data.people[c.who]?.name;
+        if (name) {
+          data.stars[name] = (data.stars[name] || 0) + 1;
+          data.starsToday[name] = (data.starsToday[name] || 0) + 1;
+        } else {
+          // "Anyone" chore completed from the Everyone view: no star credited
+        }
+      } else {
+        // undo the star if it was credited today
+        const name = c.who === -1 ? (filterIndex !== null && filterIndex >= 0 ? data.people[filterIndex].name : null)
+                                  : data.people[c.who]?.name;
+        if (name && data.starsToday[name] > 0) {
+          data.stars[name]--; data.starsToday[name]--;
+        }
+      }
+      store.save(data);
+      renderChores(); renderPeople();
+    };
+    body.appendChild(row);
+  });
+}
+
+/* ---------- settings panel ---------- */
+function openSettings() {
+  renderPeopleEditor();
+  renderChoresEditor();
+  fillWhoSelect();
+  $("settings").classList.add("open");
+}
+function renderPeopleEditor() {
+  const ed = $("people-editor");
+  ed.innerHTML = "";
+  data.people.forEach((p, i) => {
+    const line = document.createElement("div");
+    line.className = "person-line";
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.value = p.name; inp.placeholder = "Name";
+    inp.oninput = () => { p.name = inp.value || ("Person " + (i + 1)); };
+    const del = document.createElement("button");
+    del.className = "btn danger"; del.textContent = "✕";
+    del.onclick = () => { data.people.splice(i, 1); data.chores.forEach(c => { if (c.who === i) c.who = -1; }); renderPeopleEditor(); };
+    line.append(inp, del);
+    ed.appendChild(line);
+  });
+  if (!data.people.length) ed.innerHTML = "<div class='settings-note'>Add at least one person.</div>";
+}
+function fillWhoSelect() {
+  const sel = $("new-chore-who");
+  sel.innerHTML = "";
+  const any = document.createElement("option"); any.value = "-1"; any.textContent = "Anyone"; sel.appendChild(any);
+  data.people.forEach((p, i) => {
+    const o = document.createElement("option"); o.value = i; o.textContent = p.name; sel.appendChild(o);
+  });
+}
+function renderChoresEditor() {
+  const ed = $("chores-editor");
+  ed.innerHTML = "";
+  if (!data.chores.length) ed.innerHTML = "<div class='settings-note'>No chores yet.</div>";
+  data.chores.forEach((c, i) => {
+    const line = document.createElement("div");
+    line.className = "person-line";
+    const who = data.people[c.who]?.name || "Anyone";
+    line.innerHTML = `<div style="flex:1">${c.name} <span class='settings-note' style='display:inline'>— ${who}, ⭐${data.stars[who] || 0} total</span></div>`;
+    const del = document.createElement("button");
+    del.className = "btn danger"; del.textContent = "✕";
+    del.onclick = () => { data.chores.splice(i, 1); renderChoresEditor(); };
+    line.appendChild(del);
+    ed.appendChild(line);
+  });
+}
+
+$("gear-btn").onclick = openSettings;
+$("close-settings").onclick = () => { $("settings").classList.remove("open"); renderChores(); renderPeople(); };
+$("add-person").onclick = () => {
+  data.people.push({ name: "Person " + (data.people.length + 1) });
+  renderPeopleEditor(); fillWhoSelect();
+};
+$("add-chore").onclick = () => {
+  const name = $("new-chore-name").value.trim();
+  if (!name) return;
+  data.chores.push({ name, who: parseInt($("new-chore-who").value, 10), completed: false });
+  $("new-chore-name").value = "";
+  store.save(data);
+  renderChoresEditor();
+};
+$("save-settings").onclick = () => { store.save(data); $("settings").classList.remove("open"); renderChores(); renderPeople(); };
+$("reset-stars").onclick = () => {
+  if (!confirm("Reset all ⭐ star totals to zero?")) return;
+  data.stars = {}; data.starsToday = {};
+  store.save(data); renderChoresEditor(); renderPeople();
+};
+$("reset-all").onclick = () => {
+  if (!confirm("Erase ALL people, chores and stars on this tablet?")) return;
+  localStorage.removeItem("familyhub");
+  location.reload();
+};
+
+/* ---------- calendar mode tabs ---------- */
+document.querySelectorAll(".cal-tabs button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".cal-tabs button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    calMode = b.dataset.mode;
+    renderCalendar();
+  };
+});
+
+/* ---------- boot ---------- */
+tickClock();
+setInterval(tickClock, 1000);
+rolloverDay();
+renderPeople();
+renderChores();
+renderCalendar();
+loadWeather();
+setInterval(loadWeather, 10 * 60 * 1000);   // weather refresh every 10 min
+setInterval(() => { rolloverDay(); renderChores(); }, 60 * 1000); // midnight chore reset
+// keep the browser up to date even if it dozes
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { tickClock(); loadWeather(); } });
+</script>
+</body>
+</html>
