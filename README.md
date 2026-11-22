@@ -7,7 +7,10 @@ star rewards. No server, no subscription, no Google account on the tablet.
 ## What's on the screen
 - **Clock & date** — big and readable from across the kitchen
 - **Calendar** — your family's live Google Calendar (month / week / list views)
-- **Weather** — current conditions + 3-day forecast (Open-Meteo, free)
+- **Weather** — current conditions + 3-day forecast, tucked into the header
+  (Open-Meteo, free; Celsius by default — set `UNIT: "F"` for Fahrenheit)
+- **Portrait-first layout** — slim header, the calendar takes the full width as
+  the main focus, with the chore chart in a grid beneath it
 - **Chores** — tap-to-complete chart with per-person star rewards; reset every
   midnight; edited right on the tablet via the ⚙️ button
 - **Night dimming** — the screen automatically fades to black between

@@ -28,35 +28,45 @@
     position: fixed; inset: 0; background: #000; opacity: 0;
     pointer-events: none; z-index: 9999; transition: opacity 3s ease;
   }
-  .app { display: flex; flex-direction: column; height: 100vh; padding: 14px; gap: 14px; }
+  .app { display: flex; flex-direction: column; height: 100vh; padding: 10px; gap: 10px; }
 
-  /* ---------- header ---------- */
+  /* ---------- slim header: clock + date left, weather + gear right ---------- */
   header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 4px 10px; flex: 0 0 auto;
+    padding: 2px 12px; flex: 0 0 auto; gap: 16px;
   }
-  .clock { font-size: 52px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
-  .clock .sec { font-size: 22px; color: var(--muted); font-weight: 500; }
-  .date-line { font-size: 20px; color: var(--muted); margin-top: 4px; }
+  .clock { font-size: 28px; font-weight: 500; letter-spacing: .5px; line-height: 1.1; }
+  .clock .sec { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .date-line { font-size: 14px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
   #gear-btn {
-    background: none; border: none; color: var(--muted); font-size: 26px;
-    cursor: pointer; padding: 8px 12px; border-radius: 10px;
+    background: none; border: none; color: var(--muted); font-size: 22px;
+    cursor: pointer; padding: 4px 8px; border-radius: 10px;
   }
   #gear-btn:active { background: var(--panel-2); }
 
-  /* ---------- main grid ---------- */
-  main { display: flex; gap: 14px; flex: 1 1 auto; min-height: 0; }
+  /* compact weather inside the header */
+  .weather-inline { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .w-temp { font-size: 22px; font-weight: 500; }
+  .w-desc { color: var(--muted); font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+  .w-forecast { display: flex; gap: 12px; }
+  .w-day { text-align: center; line-height: 1.25; }
+  .w-day .d { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .w-day .hi { font-size: 14px; font-weight: 500; }
+  .w-day .lo { font-size: 12px; color: var(--muted); }
+
+  /* ---------- main: calendar full width, chores beneath ---------- */
+  main { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; }
   .card {
     background: var(--panel); border-radius: var(--radius);
     display: flex; flex-direction: column; overflow: hidden; min-height: 0;
   }
   .card h2 {
-    font-size: 15px; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--muted); padding: 14px 20px 8px; flex: 0 0 auto;
+    font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); padding: 10px 18px 6px; flex: 0 0 auto;
     display: flex; align-items: center; gap: 8px;
   }
   #calendar-card { flex: 3 1 0; }
-  #side-col { flex: 2 1 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
   /* calendar */
   .cal-tabs { display: flex; gap: 8px; padding: 0 20px 10px; flex: 0 0 auto; }
@@ -69,29 +79,18 @@
     flex: 1 1 auto; border: none; width: 100%; background: #fff; border-radius: 0 0 var(--radius) var(--radius);
   }
 
-  /* weather */
-  #weather-card { flex: 0 0 auto; }
-  .weather-body { display: flex; align-items: center; padding: 4px 20px 18px; gap: 18px; flex-wrap: wrap; }
-  .w-now { display: flex; align-items: baseline; gap: 6px; }
-  .w-temp { font-size: 46px; font-weight: 700; }
-  .w-desc { color: var(--muted); font-size: 16px; max-width: 160px; }
-  .w-forecast { display: flex; gap: 18px; margin-left: auto; }
-  .w-day { text-align: center; }
-  .w-day .d { font-size: 13px; color: var(--muted); text-transform: uppercase; }
-  .w-day .hi { font-size: 19px; font-weight: 600; }
-  .w-day .lo { font-size: 14px; color: var(--muted); }
-
   /* chores */
-  #chores-card { flex: 1 1 auto; min-height: 0; }
+  #chores-card { flex: 2 1 0; min-height: 0; }
   #stars-summary {
-    margin-left: auto; font-size: 14px; color: var(--accent-2); font-weight: 600;
+    margin-left: auto; font-size: 13px; font-weight: 500; color: var(--accent-2);
     text-transform: none; letter-spacing: 0;
   }
-  .chores-body { flex: 1 1 auto; overflow-y: auto; padding: 2px 14px 14px; }
-  .person-filter { display: flex; gap: 8px; padding: 4px 20px 10px; flex-wrap: wrap; flex: 0 0 auto; }
+  .chores-body { flex: 1 1 auto; overflow-y: auto; padding: 2px 12px 12px; min-height: 0; }
+  .chores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+  .person-filter { display: flex; gap: 8px; padding: 2px 18px 10px; flex-wrap: wrap; flex: 0 0 auto; }
   .person-filter button {
     background: var(--panel-2); border: 2px solid transparent; color: var(--text);
-    font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 999px; cursor: pointer;
   }
   .person-filter button.selected { border-color: var(--accent); background: rgba(91,155,213,.18); }
   .person-filter button .st { color: var(--accent-2); margin-left: 6px; }
@@ -160,7 +159,10 @@
       <div class="clock" id="clock">--:--<span class="sec">:--</span></div>
       <div class="date-line" id="dateline">Loading…</div>
     </div>
-    <button id="gear-btn" title="Settings">⚙️</button>
+    <div class="header-right">
+      <div class="weather-inline" id="weather-inline">Weather…</div>
+      <button id="gear-btn" title="Settings">⚙️</button>
+    </div>
   </header>
 
   <main>
@@ -174,18 +176,11 @@
       <iframe id="cal-embed" title="Family Calendar"></iframe>
     </div>
 
-    <div id="side-col">
-      <div class="card" id="weather-card">
-        <h2><span id="w-city">Weather</span></h2>
-        <div class="weather-body" id="weather-body">
-          <div class="w-desc">Loading weather…</div>
-        </div>
-      </div>
-
-      <div class="card" id="chores-card">
-        <h2>Chores <span id="stars-summary"></span></h2>
-        <div class="person-filter" id="person-filter"></div>
-        <div class="chores-body" id="chores-body"></div>
+    <div class="card" id="chores-card">
+      <h2>Chores <span id="stars-summary"></span></h2>
+      <div class="person-filter" id="person-filter"></div>
+      <div class="chores-body">
+        <div class="chores-grid" id="chores-body"></div>
       </div>
     </div>
   </main>
@@ -244,9 +239,9 @@
 
 const CONFIG = {
   CALENDAR_SRC: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=Europe%2FLondon&showPrint=0&src=c2ltb25taWxsZXIxOTgzQGdtYWlsLmNvbQ&src=ZmFtaWx5MDIxNzcxOTk0NTUzNTMxODU2MDBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=NDQ3MDVkZjEyN2JmZTEwNmU4NTAwMDdkZWUxYTQ2NWY4NWRiYjNhNDBmNjFmODc1NTZjZGRhMGQ2NzgwZTBjZUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&src=ZW4udWsjaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&src=OW8wZWxwMmJlMjM0a2d2a3Aza2l0ZGtxZ2NAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=bmVyb2xpZW1pbGxlcjhAZ21haWwuY29t&color=%234285f4&color=%23d50000&color=%238e24aa&color=%23009688&color=%238e24aa&color=%23ad1457",  // ← just the URL, no <iframe> tag or attributes
-  CITY: "Newcastle upon Tyne",                    // e.g. "Austin" or "Portland, OR"
-  CITY: "Newcastle upon Tyne",                    // e.g. "Austin" or "Portland, OR"
-  TZ: "",                      // e.g. "America/New_York"  (blank = tablet's clock)
+  CITY: "Newcastle upon Tyne",          // e.g. "Austin" or "Portland, OR"
+  UNIT: "C",                            // weather unit: "C" or "F"
+  TZ: "",                               // e.g. "America/New_York"  (blank = tablet's clock)
   /* Night dimming: screen fades to black between these hours while staying on */
   DIM_START: 22,               // 10 pm
   DIM_END: 6,                  // 6 am
@@ -331,10 +326,10 @@ function renderCalendar() {
   $("cal-embed").src = src;
 }
 
-/* ---------- weather ---------- */
+/* ---------- weather (compact, shown in the header) ---------- */
 let coords = null;
 async function loadWeather() {
-  const body = $("weather-body");
+  const body = $("weather-inline");
   try {
     if (!coords) {
       let q = CONFIG.CITY;
@@ -343,16 +338,15 @@ async function loadWeather() {
       const gj = await g.json();
       if (!gj.results || !gj.results.length) throw new Error("city not found");
       coords = gj.results[0];
-      $("w-city").textContent = "Weather — " + coords.name;
     }
+    const unit = (CONFIG.UNIT || "C").toUpperCase();
+    const temperature_unit = unit === "F" ? "fahrenheit" : "celsius";
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}` +
-              "&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&forecast_days=4";
+              `&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=${temperature_unit}&forecast_days=4`;
     const r = await fetch(u);
     const w = await r.json();
     const cur = w.current;
-    const desc = codeToText(cur.weather_code);
-    let html = `<div class="w-now"><span class="w-temp">${Math.round(cur.temperature_2m)}°</span>
-                <span class="w-desc">${desc}</span></div><div class="w-forecast">`;
+    let html = `<span class="w-temp">${codeToText(cur.weather_code)} ${Math.round(cur.temperature_2m)}°</span><div class="w-forecast">`;
     for (let i = 1; i < 4 && i < w.daily.time.length; i++) {
       const dt = new Date(w.daily.time[i] + "T12:00:00");
       html += `<div class="w-day"><div class="d">${WJ[dt.getDay()]}</div>
@@ -361,8 +355,10 @@ async function loadWeather() {
     }
     html += "</div>";
     body.innerHTML = html;
+    body.title = coords.name;
   } catch (e) {
-    body.innerHTML = `<div class="w-desc">Weather unavailable ${e.message === "no city configured" ? "— set CONFIG.CITY in the file" : ""}</div>`;
+    body.innerHTML = `<span class="w-desc">—</span>`;
+    console.warn("weather unavailable:", e.message);
   }
 }
 function codeToText(c) {
