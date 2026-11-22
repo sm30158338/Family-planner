@@ -44,6 +44,12 @@
     cursor: pointer; padding: 4px 8px; border-radius: 10px;
   }
   #gear-btn:active { background: var(--panel-2); }
+  #fs-btn {
+    background: none; border: none; color: var(--muted); font-size: 22px;
+    cursor: pointer; padding: 4px 8px; border-radius: 10px;
+  }
+  #fs-btn:active { background: var(--panel-2); }
+  html:fullscreen { background: var(--bg); }
 
   /* compact weather inside the header */
   .weather-inline { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -161,6 +167,7 @@
     </div>
     <div class="header-right">
       <div class="weather-inline" id="weather-inline">Weather…</div>
+      <button id="fs-btn" title="Toggle full screen">⛶</button>
       <button id="gear-btn" title="Settings">⚙️</button>
     </div>
   </header>
@@ -492,6 +499,24 @@ function renderChoresEditor() {
 }
 
 $("gear-btn").onclick = openSettings;
+
+/* ---------- fullscreen ---------- */
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen();
+  } else {
+    const root = document.documentElement;
+    const fn = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (fn) { try { fn.call(root).catch(() => {}); } catch (e) { try { fn.call(root); } catch (e2) {} } }
+  }
+}
+$("fs-btn").onclick = toggleFullscreen;
+// auto-fullscreen on first touch, once per session (Silk sometimes blocks it
+// without a user gesture — one tap on the dashboard will find it)
+document.body.addEventListener("touchend", function once() {
+  if (!document.fullscreenElement && (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) toggleFullscreen();
+  document.body.removeEventListener("touchend", once);
+}, { passive: true });
 $("close-settings").onclick = () => { $("settings").classList.remove("open"); renderChores(); renderPeople(); };
 $("add-person").onclick = () => {
   data.people.push({ name: "Person " + (data.people.length + 1) });

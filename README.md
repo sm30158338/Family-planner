@@ -52,7 +52,23 @@ Fill in `CALENDAR_SRC` and `CITY`, save.
 2. Open it with **Silk** (Files app → tap the file → open with Silk)
 3. Tip: tap Silk's ⋮ menu → **Add page to** → favorites, so it's one tap away
 
-### 5. Keep the screen always on
+### 5. Go full screen
+
+In Silk, tap the **⛶** button in the dashboard's header — the address bar and
+status bar disappear (most Fire OS 7+ tablets support this; if Silk refuses,
+tap the page once — the browser requires a touch before allowing fullscreen,
+so the dashboard also auto-enters fullscreen on your first tap). To leave
+fullscreen, tap ⛶ again or press the back button.
+
+For a true appliance-style setup (launches full screen by itself, nothing else
+touchable), install the free **[WallPanel](https://github.com/thecowan/wallpanel-android)**
+APK (side-load it: download on the tablet with Silk → allow unknown apps →
+install) and point it at the dashboard, or use **Fully Kiosk** (~$8). WallPanel
+needs a URL, so either serve `index.html` from any static host (e.g. GitHub
+Pages, which this repo can enable for free), or use a
+`file:///sdcard/Download/index.html` URL if your build accepts it.
+
+### 6. Keep the screen always on
 Same trick as any Fire-wall-display:
 **Settings → Device Options → tap "Serial Number" 7 times → Developer Options
 → enable "Stay Awake"** (screen then never sleeps while charging).
