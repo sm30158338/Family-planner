@@ -5,16 +5,45 @@ always-on family planner: shared calendar, weather, and a chore chart with ⭐
 star rewards. No server, no subscription, no Google account on the tablet.
 
 ## What's on the screen
-- **Clock & date** — big and readable from across the kitchen
+Four tabs sit under the slim header (clock, date, weather):
+
 - **Calendar** — your family's live Google Calendar (month / week / list views)
-- **Weather** — current conditions + 3-day forecast, tucked into the header
+  with the **chore chart beneath it**: tap-to-complete, per-person ⭐ star
+  rewards, midnight reset, and each person gets a **colour you pick in
+  Settings** (a colour swatch per family member — pink approved 🩷)
+- **Meals** — an editable 7-day meal grid for the current week; today's row is
+  highlighted; saves as you type
+- **Shopping** — a checkable list; add by typing and hitting Add (or Enter);
+  “Clear ✓” removes completed items
+- **To-Do** — same list mechanics for general tasks
+
+Everything else:
+- **Weather** — current conditions + 3-day forecast in the header
   (Open-Meteo, free; Celsius by default — set `UNIT: "F"` for Fahrenheit)
-- **Portrait-first layout** — slim header, the calendar takes the full width as
-  the main focus, with the chore chart in a grid beneath it
-- **Chores** — tap-to-complete chart with per-person star rewards; reset every
-  midnight; edited right on the tablet via the ⚙️ button
+- **Themes** — “Paper” (light, calm, e-ink-ish) by default; switch to **Dark**
+  in Settings → Theme
 - **Night dimming** — the screen automatically fades to black between
   `DIM_START` and `DIM_END` hours (default 10 pm – 6 am) but stays on
+- **Fullscreen** — tap ⛶ in the header (or tap the page once) to hide the
+  browser chrome
+
+## Syncing lists between phones and the tablet (optional)
+The Meals / Shopping / To-Do tabs live on each device by default. To sync them
+across your family's phones and the tablet, the dashboard can use a **private
+GitHub Gist** as a tiny free database — no server needed:
+
+1. Every person who wants to edit lists needs a GitHub account, and one shared
+   “personal access token (classic)” with the **gist** scope
+   (github.com/settings/tokens → Generate new token → tick `gist`)
+2. On any device: ⚙️ Settings → **Sync lists between devices** → paste the
+   token → tap **Connect / create sync** (leave Gist ID empty the first time)
+3. It creates a private Gist and shows its ID. On other devices, paste the
+   token AND the same Gist ID, then Connect.
+4. Lists now push changes within seconds and pull every minute (and whenever
+   you come back to the page). The token and Gist ID are stored per-device.
+
+Calendar and chores stay device-local: chores are deliberately done at the
+wall, and the calendar comes straight from Google.
 
 ## One-time setup (10 minutes)
 
