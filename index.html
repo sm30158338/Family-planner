@@ -1,36 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="paper">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Family Hub</title>
 <style>
-  :root {
+  /* ============ themes ============ */
+  :root, html[data-theme="paper"] {
+    --bg: #f3f0e9;            /* warm paper */
+    --panel: #fbfaf6;
+    --panel-2: #efece3;
+    --line: #ddd8cb;
+    --text: #33322e;
+    --muted: #8a8579;
+    --accent: #6b8f71;        /* sage */
+    --accent-soft: #e3eae4;
+    --accent-2: #c98a3d;      /* warm amber for stars */
+    --good: #6b8f71;
+    --danger: #b0563f;
+    --chip: #fff;
+    --shadow: 0 1px 4px rgba(60,55,40,.08);
+  }
+  html[data-theme="dark"] {
     --bg: #10141c;
     --panel: #1a2030;
     --panel-2: #212a3e;
+    --line: #2e3a55;
     --text: #e8ecf4;
     --muted: #8b94a8;
     --accent: #5b9bd5;
+    --accent-soft: rgba(91,155,213,.18);
     --accent-2: #f2b544;
     --good: #62c370;
     --danger: #e06c5f;
-    --radius: 16px;
+    --chip: #2a3450;
+    --shadow: none;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
+    font-weight: 400;
   }
+  html:fullscreen { background: var(--bg); }
   #dim-overlay {
     position: fixed; inset: 0; background: #000; opacity: 0;
     pointer-events: none; z-index: 9999; transition: opacity 3s ease;
   }
-  .app { display: flex; flex-direction: column; height: 100vh; padding: 10px; gap: 10px; }
+  .app { display: flex; flex-direction: column; height: 100vh; padding: 10px; gap: 8px; }
 
-  /* ---------- slim header: clock + date left, weather + gear right ---------- */
+  /* ============ slim header ============ */
   header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 2px 12px; flex: 0 0 auto; gap: 16px;
@@ -38,123 +58,189 @@
   .clock { font-size: 28px; font-weight: 500; letter-spacing: .5px; line-height: 1.1; }
   .clock .sec { font-size: 14px; color: var(--muted); font-weight: 400; }
   .date-line { font-size: 14px; color: var(--muted); font-weight: 400; margin-top: 2px; }
-  .header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  #gear-btn {
-    background: none; border: none; color: var(--muted); font-size: 22px;
-    cursor: pointer; padding: 4px 8px; border-radius: 10px;
-  }
-  #gear-btn:active { background: var(--panel-2); }
-  #fs-btn {
-    background: none; border: none; color: var(--muted); font-size: 22px;
-    cursor: pointer; padding: 4px 8px; border-radius: 10px;
-  }
-  #fs-btn:active { background: var(--panel-2); }
-  html:fullscreen { background: var(--bg); }
-
-  /* compact weather inside the header */
+  .header-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .weather-inline { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .w-temp { font-size: 22px; font-weight: 500; }
-  .w-desc { color: var(--muted); font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+  .w-desc { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
   .w-forecast { display: flex; gap: 12px; }
   .w-day { text-align: center; line-height: 1.25; }
   .w-day .d { font-size: 11px; color: var(--muted); text-transform: uppercase; }
   .w-day .hi { font-size: 14px; font-weight: 500; }
   .w-day .lo { font-size: 12px; color: var(--muted); }
+  .icon-btn {
+    background: none; border: none; color: var(--muted); font-size: 22px;
+    cursor: pointer; padding: 4px 8px; border-radius: 10px;
+  }
+  .icon-btn:active { background: var(--panel-2); }
 
-  /* ---------- main: calendar full width, chores beneath ---------- */
-  main { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; }
+  /* ============ view tabs ============ */
+  .view-tabs {
+    display: flex; gap: 6px; flex: 0 0 auto; align-items: center;
+  }
+  .view-tabs button {
+    flex: 1 1 0;
+    background: transparent; border: none; color: var(--muted);
+    font-size: 15px; font-weight: 500; padding: 9px 8px; border-radius: 12px; cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+  }
+  .view-tabs button.active { color: var(--text); border-bottom-color: var(--accent); background: var(--panel); }
+
+  /* ============ cards ============ */
+  main { flex: 1 1 auto; min-height: 0; position: relative; }
+  .view { display: none; height: 100%; }
+  .view.active { display: flex; flex-direction: column; }
   .card {
-    background: var(--panel); border-radius: var(--radius);
-    display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; overflow: hidden; min-height: 0; flex: 1 1 auto;
   }
   .card h2 {
-    font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px;
+    font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 2.5px;
     color: var(--muted); padding: 10px 18px 6px; flex: 0 0 auto;
     display: flex; align-items: center; gap: 8px;
   }
-  #calendar-card { flex: 4 1 0; }
+  .card h2 .spacer { margin-left: auto; }
 
-  /* calendar */
-  .cal-tabs { display: flex; gap: 8px; padding: 0 20px 10px; flex: 0 0 auto; }
+  /* ============ calendar ============ */
+  .cal-tabs { display: flex; gap: 8px; padding: 0 18px 10px; flex: 0 0 auto; }
   .cal-tabs button {
     background: var(--panel-2); border: none; color: var(--muted);
-    font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+    font-size: 14px; font-weight: 500; padding: 8px 18px; border-radius: 999px; cursor: pointer;
   }
   .cal-tabs button.active { background: var(--accent); color: #fff; }
-  #cal-embed {
-    flex: 1 1 auto; border: none; width: 100%; background: #fff; border-radius: 0 0 var(--radius) var(--radius);
-  }
+  #cal-embed { flex: 1 1 auto; border: none; width: 100%; background: #fff; border-radius: 0 0 15px 15px; }
 
-  /* chores */
-  #chores-card { flex: 1.5 1 0; min-height: 0; }
+  /* ============ meals ============ */
+  .meals-body { flex: 1 1 auto; overflow-y: auto; padding: 6px 16px 16px; }
+  .meal-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 6px; border-bottom: 1px solid var(--line);
+  }
+  .meal-row:last-child { border-bottom: none; }
+  .meal-day {
+    flex: 0 0 118px; font-size: 15px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .meal-row.today .meal-day { color: var(--accent); }
+  .meal-row input {
+    flex: 1 1 auto; background: transparent; border: none; outline: none;
+    color: var(--text); font-size: 17px; font-weight: 400;
+    border-bottom: 1px dashed var(--line); padding: 4px 2px;
+  }
+  .meal-row input:focus { border-bottom-color: var(--accent); }
+  .meals-tools { display: flex; gap: 8px; padding: 0 18px 12px; }
+
+  /* ============ shopping / todo lists ============ */
+  .list-body { flex: 1 1 auto; overflow-y: auto; padding: 6px 16px 16px; }
+  .list-add { display: flex; gap: 8px; padding: 0 18px 12px; flex: 0 0 auto; }
+  .list-add input {
+    flex: 1 1 auto; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--text); font-size: 16px; padding: 10px 14px; outline: none;
+  }
+  .list-add input:focus { border-color: var(--accent); }
+  .item-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 6px; border-bottom: 1px solid var(--line); cursor: pointer; user-select: none;
+  }
+  .item-row .box {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px;
+    border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: transparent; transition: all .15s ease;
+  }
+  .item-row.done .box { background: var(--good); border-color: var(--good); color: #fff; }
+  .item-row .label { flex: 1 1 auto; font-size: 17px; }
+  .item-row.done .label { color: var(--muted); text-decoration: line-through; }
+  .item-row .del {
+    flex: 0 0 auto; background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; padding: 2px 8px; border-radius: 8px;
+  }
+  .item-row .del:active { background: var(--panel-2); }
+  .empty-note { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 14px; }
+
+  /* ============ chores (now inside calendar view, below calendar) ============ */
+  .chores-strip { flex: 0 0 auto; border-top: 1px solid var(--line); }
   #stars-summary {
     margin-left: auto; font-size: 13px; font-weight: 500; color: var(--accent-2);
     text-transform: none; letter-spacing: 0;
   }
-  .chores-body { flex: 1 1 auto; overflow-y: auto; padding: 2px 12px 12px; min-height: 0; }
-  .chores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
-  .person-filter { display: flex; gap: 8px; padding: 2px 18px 10px; flex-wrap: wrap; flex: 0 0 auto; }
+  .person-filter { display: flex; gap: 8px; padding: 8px 18px 8px; flex-wrap: wrap; flex: 0 0 auto; }
   .person-filter button {
     background: var(--panel-2); border: 2px solid transparent; color: var(--text);
     font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 999px; cursor: pointer;
   }
-  .person-filter button.selected { border-color: var(--accent); background: rgba(91,155,213,.18); }
+  .person-filter button.selected { border-color: var(--accent); background: var(--accent-soft); }
   .person-filter button .st { color: var(--accent-2); margin-left: 6px; }
+  .chores-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px;
+    padding: 0 16px 12px; overflow-y: auto; max-height: 34vh;
+  }
   .chore-row {
-    display: flex; align-items: center; gap: 14px;
+    display: flex; align-items: center; gap: 10px;
     background: var(--panel-2); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 8px; cursor: pointer; user-select: none;
+    padding: 9px 11px; cursor: pointer; user-select: none;
   }
   .chore-row .box {
-    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
-    border: 2.5px solid var(--muted); display: flex; align-items: center; justify-content: center;
-    font-size: 18px; color: transparent; transition: all .15s ease;
+    flex: 0 0 auto; width: 24px; height: 24px; border-radius: 8px;
+    border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: transparent; transition: all .15s ease;
   }
   .chore-row.done .box { background: var(--good); border-color: var(--good); color: #fff; }
-  .chore-row .label { flex: 1 1 auto; font-size: 18px; font-weight: 500; }
+  .chore-row .label { flex: 1 1 auto; font-size: 15px; font-weight: 400; }
   .chore-row.done .label { color: var(--muted); text-decoration: line-through; }
   .chore-row .for {
-    flex: 0 0 auto; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-    padding: 4px 10px; border-radius: 6px; color: #fff;
+    flex: 0 0 auto; font-size: 12px; font-weight: 500; letter-spacing: .5px;
+    padding: 3px 9px; border-radius: 6px; color: #fff;
   }
-  .empty-note { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 15px; }
 
-  /* ---------- settings panel ---------- */
+  /* ============ settings ============ */
   #settings {
     position: fixed; inset: 0; z-index: 500;
-    background: rgba(8,10,15,.78); display: none;
-    align-items: center; justify-content: center;
+    background: rgba(20,18,12,.5); display: none; align-items: center; justify-content: center;
   }
   #settings.open { display: flex; }
   .settings-box {
-    background: var(--panel); border-radius: var(--radius); width: min(92vw, 640px);
-    max-height: 88vh; overflow-y: auto; padding: 26px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    width: min(92vw, 640px); max-height: 88vh; overflow-y: auto; padding: 24px;
   }
-  .settings-box h3 { font-size: 20px; margin-bottom: 18px; display: flex; align-items: center; }
+  .settings-box h3 { font-size: 20px; font-weight: 500; margin-bottom: 16px; display: flex; align-items: center; }
   .settings-box h3 button { margin-left: auto; }
-  .settings-section { background: var(--panel-2); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-  .settings-section h4 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
-  .settings-section input[type=text] {
-    width: 100%; background: var(--bg); border: 1px solid #33405c; color: var(--text);
-    border-radius: 8px; padding: 10px 12px; font-size: 16px; margin-bottom: 8px;
+  .settings-section { background: var(--panel-2); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .settings-section h4 { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+  .settings-section input[type=text], .settings-section input[type=password] {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 9px 12px; font-size: 15px; margin-bottom: 8px; outline: none;
   }
+  .settings-section input:focus { border-color: var(--accent); }
   .row-flex { display: flex; gap: 8px; align-items: center; }
   .row-flex input { flex: 1 1 auto; margin-bottom: 0; }
   .btn {
     background: var(--accent); color: #fff; border: none; border-radius: 8px;
-    padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+    padding: 9px 16px; font-size: 14px; font-weight: 500; cursor: pointer;
   }
-  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid #33405c; }
-  .btn.danger { background: none; color: var(--danger); font-size: 20px; padding: 4px 10px; flex: 0 0 auto; }
-  .btn.small { padding: 6px 12px; font-size: 14px; }
-  .settings-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+  .btn.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+  .btn.danger { background: none; color: var(--danger); font-size: 18px; padding: 4px 10px; flex: 0 0 auto; }
+  .btn.small { padding: 6px 12px; font-size: 13px; }
+  .settings-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
   .person-line { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .person-line input { flex: 1 1 auto; }
-  .settings-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-  select {
-    background: var(--panel-2); color: var(--text); border: 1px solid #33405c;
-    border-radius: 8px; padding: 10px 12px; font-size: 15px; margin-right: 8px;
+  .person-line input[type=text] { flex: 1 1 auto; margin-bottom: 0; }
+  .person-line input[type=color] {
+    width: 40px; height: 34px; padding: 2px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--panel); cursor: pointer; flex: 0 0 auto;
   }
+  .theme-toggle { display: flex; gap: 8px; }
+  .theme-toggle button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--line);
+    background: var(--panel); color: var(--text); font-size: 14px; cursor: pointer;
+  }
+  .theme-toggle button.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .settings-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  select {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; font-size: 14px; margin-right: 8px; outline: none;
+  }
+  #sync-status { font-size: 13px; margin-top: 6px; }
+  #sync-status.ok { color: var(--good); }
+  #sync-status.err { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -167,27 +253,72 @@
     </div>
     <div class="header-right">
       <div class="weather-inline" id="weather-inline">Weather…</div>
-      <button id="fs-btn" title="Toggle full screen">⛶</button>
-      <button id="gear-btn" title="Settings">⚙️</button>
+      <button class="icon-btn" id="fs-btn" title="Toggle full screen">⛶</button>
+      <button class="icon-btn" id="gear-btn" title="Settings">⚙️</button>
     </div>
   </header>
 
+  <div class="view-tabs" id="view-tabs">
+    <button data-view="calendar" class="active">Calendar</button>
+    <button data-view="meals">Meals</button>
+    <button data-view="shopping">Shopping</button>
+    <button data-view="todo">To-Do</button>
+  </div>
+
   <main>
-    <div class="card" id="calendar-card">
-      <h2>Calendar</h2>
-      <div class="cal-tabs">
-        <button data-mode="MONTH" class="active">Month</button>
-        <button data-mode="WEEK">Week</button>
-        <button data-mode="AGENDA">List</button>
+    <!-- CALENDAR + chores strip -->
+    <div class="view active" id="view-calendar">
+      <div class="card" style="flex:1 1 auto">
+        <h2>Calendar</h2>
+        <div class="cal-tabs">
+          <button data-mode="MONTH" class="active">Month</button>
+          <button data-mode="WEEK">Week</button>
+          <button data-mode="AGENDA">List</button>
+        </div>
+        <iframe id="cal-embed" title="Family Calendar"></iframe>
+        <div class="chores-strip">
+          <h2>Chores <span id="stars-summary"></span></h2>
+          <div class="person-filter" id="person-filter"></div>
+          <div class="chores-grid" id="chores-body"></div>
+        </div>
       </div>
-      <iframe id="cal-embed" title="Family Calendar"></iframe>
     </div>
 
-    <div class="card" id="chores-card">
-      <h2>Chores <span id="stars-summary"></span></h2>
-      <div class="person-filter" id="person-filter"></div>
-      <div class="chores-body">
-        <div class="chores-grid" id="chores-body"></div>
+    <!-- MEALS -->
+    <div class="view" id="view-meals">
+      <div class="card">
+        <h2>This week's meals <span class="spacer"></span></h2>
+        <div class="meals-tools">
+          <button class="btn ghost small" id="meals-clear">Clear week</button>
+          <span class="settings-note" style="margin:0">Meals save automatically — edit any box.</span>
+        </div>
+        <div class="meals-body" id="meals-body"></div>
+      </div>
+    </div>
+
+    <!-- SHOPPING -->
+    <div class="view" id="view-shopping">
+      <div class="card">
+        <h2>Shopping list <span class="spacer"></span></h2>
+        <div class="list-add">
+          <input type="text" id="shop-input" placeholder="Add an item…">
+          <button class="btn" id="shop-add">Add</button>
+          <button class="btn ghost" id="shop-clear">Clear ✓</button>
+        </div>
+        <div class="list-body" id="shop-list"></div>
+      </div>
+    </div>
+
+    <!-- TO-DO -->
+    <div class="view" id="view-todo">
+      <div class="card">
+        <h2>To-do list <span class="spacer"></span></h2>
+        <div class="list-add">
+          <input type="text" id="todo-input" placeholder="Add a task…">
+          <button class="btn" id="todo-add">Add</button>
+          <button class="btn ghost" id="todo-clear">Clear ✓</button>
+        </div>
+        <div class="list-body" id="todo-list"></div>
       </div>
     </div>
   </main>
@@ -198,7 +329,15 @@
     <h3>Settings <button class="btn ghost" id="close-settings">Close</button></h3>
 
     <div class="settings-section">
-      <h4>Family members</h4>
+      <h4>Theme</h4>
+      <div class="theme-toggle">
+        <button id="theme-paper">📄 Paper (light)</button>
+        <button id="theme-dark">🌙 Dark</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h4>Family members &amp; colours</h4>
       <div id="people-editor"></div>
       <button class="btn small ghost" id="add-person">+ Add person</button>
     </div>
@@ -209,20 +348,36 @@
         <input type="text" id="new-chore-name" placeholder="Chore, e.g. Take out trash">
         <select id="new-chore-who"></select>
       </div>
-      <div class="settings-note">Everyone can claim a chore in the "Anyone" bucket.</div>
+      <div class="settings-note">"Anyone" chores can be claimed by whoever completes them.</div>
       <button class="btn small" id="add-chore" style="margin-top:10px">+ Add chore</button>
     </div>
 
     <div class="settings-section">
-      <h4>Current chores &amp; star totals</h4>
+      <h4>Current chores</h4>
       <div id="chores-editor"></div>
+    </div>
+
+    <div class="settings-section">
+      <h4>Sync lists between devices (optional)</h4>
+      <div class="settings-note">Meals, shopping and to-do can sync across phones and this tablet
+        through a private GitHub Gist — free, no server. Create a GitHub "personal access token
+        (classic)" with the <b>gist</b> scope at github.com/settings/tokens, paste it below, then tap Connect.
+        Every family member uses the same token.</div>
+      <input type="password" id="sync-token" placeholder="GitHub token (starts with ghp_…)">
+      <input type="text" id="sync-gist" placeholder="Gist ID (filled in automatically on first connect)">
+      <div class="row-flex">
+        <button class="btn small" id="sync-connect">Connect / create sync</button>
+        <button class="btn small ghost" id="sync-now">Sync now</button>
+        <button class="btn small ghost" id="sync-disconnect">Disconnect</button>
+      </div>
+      <div id="sync-status"></div>
     </div>
 
     <div class="settings-section">
       <h4>Reset</h4>
       <button class="btn ghost" id="reset-stars">Reset ⭐ star totals</button>
       <button class="btn ghost" id="reset-all" style="margin-left:8px">Reset everything</button>
-      <div class="settings-note">"Reset everything" restores this tablet to a fresh install (chores and people wiped).</div>
+      <div class="settings-note">"Reset everything" restores a fresh install (lists, chores and people wiped on this device only).</div>
     </div>
 
     <div class="settings-actions">
@@ -236,23 +391,20 @@
 <script>
 /* ============================================================
    FAMILY HUB  —  standalone dashboard for an Amazon Fire tablet
-   ------------------------------------------------------------
-   ONE-TIME SETUP (see README):
-   1. Paste your Google Calendar embed src into CALENDAR_SRC.
-   2. Type your town into CITY for weather.
-   Everything below (chores, people) is edited right on the
-   tablet via the ⚙️ button and saved on the tablet itself.
    ============================================================ */
 
 const CONFIG = {
-  CALENDAR_SRC: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=Europe%2FLondon&showPrint=0&src=c2ltb25taWxsZXIxOTgzQGdtYWlsLmNvbQ&src=ZmFtaWx5MDIxNzcxOTk0NTUzNTMxODU2MDBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=NDQ3MDVkZjEyN2JmZTEwNmU4NTAwMDdkZWUxYTQ2NWY4NWRiYjNhNDBmNjFmODc1NTZjZGRhMGQ2NzgwZTBjZUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&src=ZW4udWsjaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&src=bmVyb2xpZW1pbGxlcjhAZ21haWwuY29t&color=%234285f4&color=%23d50000&color=%238e24aa&color=%23009688&color=%23ad1457",  // ← just the URL, no <iframe> tag or attributes
+  CALENDAR_SRC: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=Europe%2FLondon&showPrint=0&src=c2ltb25taWxsZXIxOTgzQGdtYWlsLmNvbQ&src=ZmFtaWx5MDIxNzcxOTk0NTUzNTMxODU2MDBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=NDQ3MDVkZjEyN2JmZTEwNmU4NTAwMDdkZWUxYTQ2NWY4NWRiYjNhNDBmNjFmODc1NTZjZGRhMGQ2NzgwZTBjZUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&src=ZW4udWsjaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&src=bmVyb2xpZW1pbGxlcjhAZ21haWwuY29t&color=%234285f4&color=%23d50000&color=%238e24aa&color=%23009688&color=%23ad1457",
   CITY: "Newcastle upon Tyne",          // e.g. "Austin" or "Portland, OR"
   UNIT: "C",                            // weather unit: "C" or "F"
   TZ: "",                               // e.g. "America/New_York"  (blank = tablet's clock)
   /* Night dimming: screen fades to black between these hours while staying on */
   DIM_START: 22,               // 10 pm
   DIM_END: 6,                  // 6 am
-  PALETTE: ["#5b9bd5", "#f28cb1", "#7ac74f", "#b57edc", "#f2b544", "#58c9b9"]
+  /* Optional default sync (can also be set in Settings on the tablet) */
+  GIST_TOKEN: "",
+  GIST_ID: "",
+  PALETTE: ["#e26ba8", "#5b9bd5", "#7ac74f", "#b57edc", "#c98a3d", "#58c9b9"]  // pink first!
 };
 
 /* ---------- state ---------- */
@@ -267,18 +419,21 @@ const store = {
 let data = store.load();
 if (!data) {
   data = {
-    people: [{ name: "Mom" }, { name: "Dad" }],
-    chores: [],        // {name, who: -1 for anyone, personIndex or -1}
-    stars: {},         // personName -> total stars
-    starsToday: {},    // personName -> stars earned today
-    day: null          // "YYYY-MM-DD" of last completion day
+    people: [{ name: "Mom", color: CONFIG.PALETTE[0] }, { name: "Dad", color: CONFIG.PALETTE[1] }],
+    chores: [],
+    stars: {}, starsToday: {}, day: null,
+    theme: "paper",
+    meals: {},            // { "Mon": "Spaghetti", ... }
+    shopping: [],         // {text, done}
+    todo: [],
+    _ts: 0                // sync timestamp
   };
   store.save(data);
 }
 
-/* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
 const WJ = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WD = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 function todayStr() {
   if (CONFIG.TZ) return new Date().toLocaleDateString("en-CA", { timeZone: CONFIG.TZ });
@@ -292,6 +447,11 @@ function rolloverDay() {
     data.starsToday = {};
     store.save(data);
   }
+}
+function save() {
+  data._ts = Date.now();
+  store.save(data);
+  sync.pushSoon();
 }
 
 /* ---------- clock & date ---------- */
@@ -310,13 +470,32 @@ function tickClock() {
                           : { weekday: "long", month: "long", day: "numeric" };
   $("dateline").textContent = now.toLocaleDateString("en-US", dOpts);
 
-  // night dimming
   const hr = now.getHours();
   const dimmed = CONFIG.DIM_START > CONFIG.DIM_END
     ? (hr >= CONFIG.DIM_START || hr < CONFIG.DIM_END)
     : (hr >= CONFIG.DIM_START && hr < CONFIG.DIM_END);
   $("dim-overlay").style.opacity = dimmed ? 0.86 : 0;
 }
+
+/* ---------- theme ---------- */
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", data.theme || "paper");
+  $("theme-paper").className = data.theme === "paper" ? "selected" : "";
+  $("theme-dark").className = data.theme === "dark" ? "selected" : "";
+}
+$("theme-paper").onclick = () => { data.theme = "paper"; applyTheme(); save(); };
+$("theme-dark").onclick  = () => { data.theme = "dark";  applyTheme(); save(); };
+
+/* ---------- views ---------- */
+function showView(v) {
+  document.querySelectorAll(".view-tabs button").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === v));
+  document.querySelectorAll(".view").forEach(el =>
+    el.classList.toggle("active", el.id === "view-" + v));
+}
+document.querySelectorAll(".view-tabs button").forEach(b => {
+  b.onclick = () => showView(b.dataset.view);
+});
 
 /* ---------- calendar ---------- */
 let calMode = "MONTH";
@@ -325,15 +504,22 @@ function renderCalendar() {
   if (!base) {
     $("cal-embed").srcdoc = "<body style='font-family:sans-serif;padding:36px;color:#444;font-size:16px'>" +
       "<h2 style='margin-bottom:12px'>📅 Connect your calendar</h2>" +
-      "<p>Open this file in a text editor and paste your Google Calendar <b>embed link</b> into " +
-      "<code>CONFIG.CALENDAR_SRC</code> at the top of the script. See the README that came with this dashboard.</p>";
+      "<p>Paste your Google Calendar <b>embed link</b> into <code>CONFIG.CALENDAR_SRC</code> at the top of the script.</p>";
     return;
   }
-  const src = base.replace(/(&|\?)mode=\w*/g, "") + (base.includes("?") ? "&" : "?") + "mode=" + calMode;
-  $("cal-embed").src = src;
+  $("cal-embed").removeAttribute("srcdoc");
+  $("cal-embed").src = base.replace(/(&|\?)mode=\w*/g, "") + (base.includes("?") ? "&" : "?") + "mode=" + calMode;
 }
+document.querySelectorAll(".cal-tabs button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".cal-tabs button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    calMode = b.dataset.mode;
+    renderCalendar();
+  };
+});
 
-/* ---------- weather (compact, shown in the header) ---------- */
+/* ---------- weather ---------- */
 let coords = null;
 async function loadWeather() {
   const body = $("weather-inline");
@@ -369,17 +555,85 @@ async function loadWeather() {
   }
 }
 function codeToText(c) {
-  const t = {0:"Clear ☀️",1:"Mostly sunny 🌤️",2:"Partly cloudy ⛅",3:"Cloudy ☁️",45:"Fog 🌫️",48:"Fog 🌫️",
-    51:"Drizzle 🌦️",53:"Drizzle 🌦️",55:"Drizzle 🌦️",61:"Rain 🌧️",63:"Rain 🌧️",65:"Heavy rain 🌧️",
-    66:"Freezing rain 🌧️",67:"Freezing rain 🌧️",71:"Snow 🌨️",73:"Snow 🌨️",75:"Heavy snow ❄️",
-    77:"Snow grains 🌨️",80:"Showers 🌦️",81:"Showers 🌦️",82:"Heavy showers 🌊",85:"Snow showers 🌨️",
-    86:"Snow showers 🌨️",95:"Thunderstorm ⛈️",96:"Storm + hail ⛈️",99:"Storm + hail ⛈️"};
-  return t[c] || "—";
+  const t = {0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",
+    51:"🌦️",53:"🌦️",55:"🌦️",61:"🌧️",63:"🌧️",65:"🌧️",
+    66:"🌧️",67:"🌧️",71:"🌨️",73:"🌨️",75:"❄️",
+    77:"🌨️",80:"🌦️",81:"🌦️",82:"🌧️",85:"🌨️",
+    86:"🌨️",95:"⛈️",96:"⛈️",99:"⛈️"};
+  return t[c] || "·";
 }
 
+/* ---------- meals ---------- */
+function renderMeals() {
+  const body = $("meals-body");
+  body.innerHTML = "";
+  const now = new Date();
+  const todayName = WD[(now.getDay() + 6) % 7];   // Monday-first
+  // figure out Monday of this week
+  const monday = new Date(now);
+  monday.setHours(0,0,0,0);
+  monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
+  WD.forEach((day, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const row = document.createElement("div");
+    row.className = "meal-row" + (day === todayName ? " today" : "");
+    const label = document.createElement("div");
+    label.className = "meal-day";
+    label.textContent = day + " " + d.getDate();
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.placeholder = "—";
+    inp.value = data.meals[day] || "";
+    inp.oninput = () => { data.meals[day] = inp.value.trim(); save(); };
+    row.append(label, inp);
+    body.appendChild(row);
+  });
+}
+$("meals-clear").onclick = () => {
+  if (!confirm("Clear all meals for this week?")) return;
+  data.meals = {}; save(); renderMeals();
+};
+
+/* ---------- generic checkable list (shopping / todo) ---------- */
+function renderList(listName, elId) {
+  const body = $(elId);
+  body.innerHTML = "";
+  const items = data[listName];
+  if (!items.length) {
+    body.innerHTML = "<div class='empty-note'>Nothing here yet — add something above!</div>";
+    return;
+  }
+  items.forEach((it, i) => {
+    const row = document.createElement("div");
+    row.className = "item-row" + (it.done ? " done" : "");
+    const box = document.createElement("div"); box.className = "box"; box.textContent = "✓";
+    const label = document.createElement("div"); label.className = "label"; label.textContent = it.text;
+    const del = document.createElement("button"); del.className = "del"; del.textContent = "✕";
+    del.onclick = (e) => { e.stopPropagation(); items.splice(i, 1); save(); renderList(listName, elId); };
+    row.onclick = () => { it.done = !it.done; save(); renderList(listName, elId); };
+    row.append(box, label, del);
+    body.appendChild(row);
+  });
+}
+function wireList(listName, inputId, addId, clearId, viewId) {
+  $(addId).onclick = () => {
+    const v = $(inputId).value.trim();
+    if (!v) return;
+    data[listName].push({ text: v, done: false });
+    $(inputId).value = "";
+    save(); renderList(listName, viewId);
+  };
+  $(inputId).onkeydown = (e) => { if (e.key === "Enter") $(addId).click(); };
+  $(clearId).onclick = () => {
+    data[listName] = data[listName].filter(x => !x.done);
+    save(); renderList(listName, viewId);
+  };
+}
+wireList("shopping", "shop-input", "shop-add", "shop-clear", "shop-list");
+wireList("todo", "todo-input", "todo-add", "todo-clear", "todo-list");
+
 /* ---------- chores ---------- */
-let filterIndex = null; // null = everyone
-function personColor(i) { return CONFIG.PALETTE[i % CONFIG.PALETTE.length]; }
+let filterIndex = null;
+function personColor(i) { return data.people[i]?.color || CONFIG.PALETTE[i % CONFIG.PALETTE.length]; }
 
 function renderPeople() {
   const pf = $("person-filter");
@@ -391,11 +645,10 @@ function renderPeople() {
   pf.appendChild(allBtn);
   data.people.forEach((p, i) => {
     const b = document.createElement("button");
-    const st = data.stars[p.name] || 0;
-    b.innerHTML = `${p.name}<span class="st">⭐${st}</span>`;
+    b.innerHTML = `${p.name}<span class="st">⭐${data.stars[p.name] || 0}</span>`;
     b.className = filterIndex === i ? "selected" : "";
     b.onclick = () => { filterIndex = filterIndex === i ? null : i; renderChores(); renderPeople(); };
-    b.style.borderColor = filterIndex === i ? personColor(i) : "";
+    if (filterIndex === i) { b.style.borderColor = personColor(i); }
     pf.appendChild(b);
   });
   const total = Object.values(data.stars).reduce((a, b) => a + b, 0);
@@ -420,29 +673,22 @@ function renderChores() {
     const label = document.createElement("div"); label.className = "label"; label.textContent = c.name;
     const owner = document.createElement("div"); owner.className = "for";
     owner.textContent = c.who === -1 ? "Anyone" : data.people[c.who].name;
-    owner.style.background = c.who === -1 ? "#56617a" : personColor(c.who);
+    owner.style.background = c.who === -1 ? "#9aa0ac" : personColor(c.who);
     row.append(box, label, owner);
     row.onclick = () => {
       c.completed = !c.completed;
       rolloverDay();
-      if (c.completed) {
-        const name = c.who === -1 ? (filterIndex !== null && filterIndex >= 0 ? data.people[filterIndex].name : null)
+      const name = c.who === -1 ? (filterIndex !== null && filterIndex >= 0 ? data.people[filterIndex].name : null)
                                   : data.people[c.who]?.name;
-        if (name) {
+      if (name) {
+        if (c.completed) {
           data.stars[name] = (data.stars[name] || 0) + 1;
           data.starsToday[name] = (data.starsToday[name] || 0) + 1;
-        } else {
-          // "Anyone" chore completed from the Everyone view: no star credited
-        }
-      } else {
-        // undo the star if it was credited today
-        const name = c.who === -1 ? (filterIndex !== null && filterIndex >= 0 ? data.people[filterIndex].name : null)
-                                  : data.people[c.who]?.name;
-        if (name && data.starsToday[name] > 0) {
+        } else if (data.starsToday[name] > 0) {
           data.stars[name]--; data.starsToday[name]--;
         }
       }
-      store.save(data);
+      save();
       renderChores(); renderPeople();
     };
     body.appendChild(row);
@@ -451,9 +697,12 @@ function renderChores() {
 
 /* ---------- settings panel ---------- */
 function openSettings() {
+  $("sync-token").value = sync.token || "";
+  $("sync-gist").value = sync.gistId || "";
   renderPeopleEditor();
   renderChoresEditor();
   fillWhoSelect();
+  applyTheme();
   $("settings").classList.add("open");
 }
 function renderPeopleEditor() {
@@ -465,10 +714,13 @@ function renderPeopleEditor() {
     const inp = document.createElement("input");
     inp.type = "text"; inp.value = p.name; inp.placeholder = "Name";
     inp.oninput = () => { p.name = inp.value || ("Person " + (i + 1)); };
+    const col = document.createElement("input");
+    col.type = "color"; col.value = p.color || personColor(i); col.title = "Chore tag colour";
+    col.oninput = () => { p.color = col.value; };
     const del = document.createElement("button");
     del.className = "btn danger"; del.textContent = "✕";
     del.onclick = () => { data.people.splice(i, 1); data.chores.forEach(c => { if (c.who === i) c.who = -1; }); renderPeopleEditor(); };
-    line.append(inp, del);
+    line.append(inp, col, del);
     ed.appendChild(line);
   });
   if (!data.people.length) ed.innerHTML = "<div class='settings-note'>Add at least one person.</div>";
@@ -489,7 +741,7 @@ function renderChoresEditor() {
     const line = document.createElement("div");
     line.className = "person-line";
     const who = data.people[c.who]?.name || "Anyone";
-    line.innerHTML = `<div style="flex:1">${c.name} <span class='settings-note' style='display:inline'>— ${who}, ⭐${data.stars[who] || 0} total</span></div>`;
+    line.innerHTML = `<div style="flex:1">${c.name} <span class='settings-note' style='display:inline'>— ${who}</span></div>`;
     const del = document.createElement("button");
     del.className = "btn danger"; del.textContent = "✕";
     del.onclick = () => { data.chores.splice(i, 1); renderChoresEditor(); };
@@ -499,6 +751,34 @@ function renderChoresEditor() {
 }
 
 $("gear-btn").onclick = openSettings;
+$("close-settings").onclick = () => { $("settings").classList.remove("open"); renderChores(); renderPeople(); };
+$("add-person").onclick = () => {
+  data.people.push({ name: "Person " + (data.people.length + 1), color: CONFIG.PALETTE[data.people.length % CONFIG.PALETTE.length] });
+  renderPeopleEditor(); fillWhoSelect();
+};
+$("add-chore").onclick = () => {
+  const name = $("new-chore-name").value.trim();
+  if (!name) return;
+  data.chores.push({ name, who: parseInt($("new-chore-who").value, 10), completed: false });
+  $("new-chore-name").value = "";
+  save();
+  renderChoresEditor();
+};
+$("save-settings").onclick = () => {
+  save();
+  $("settings").classList.remove("open");
+  renderChores(); renderPeople(); renderMeals(); renderList("shopping", "shop-list"); renderList("todo", "todo-list");
+};
+$("reset-stars").onclick = () => {
+  if (!confirm("Reset all ⭐ star totals to zero?")) return;
+  data.stars = {}; data.starsToday = {};
+  save(); renderChoresEditor(); renderPeople();
+};
+$("reset-all").onclick = () => {
+  if (!confirm("Erase ALL people, chores, lists and stars on this tablet?")) return;
+  localStorage.removeItem("familyhub");
+  location.reload();
+};
 
 /* ---------- fullscreen ---------- */
 function toggleFullscreen() {
@@ -511,59 +791,134 @@ function toggleFullscreen() {
   }
 }
 $("fs-btn").onclick = toggleFullscreen;
-// auto-fullscreen on first touch, once per session (Silk sometimes blocks it
-// without a user gesture — one tap on the dashboard will find it)
 document.body.addEventListener("touchend", function once() {
   if (!document.fullscreenElement && (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) toggleFullscreen();
   document.body.removeEventListener("touchend", once);
 }, { passive: true });
-$("close-settings").onclick = () => { $("settings").classList.remove("open"); renderChores(); renderPeople(); };
-$("add-person").onclick = () => {
-  data.people.push({ name: "Person " + (data.people.length + 1) });
-  renderPeopleEditor(); fillWhoSelect();
-};
-$("add-chore").onclick = () => {
-  const name = $("new-chore-name").value.trim();
-  if (!name) return;
-  data.chores.push({ name, who: parseInt($("new-chore-who").value, 10), completed: false });
-  $("new-chore-name").value = "";
-  store.save(data);
-  renderChoresEditor();
-};
-$("save-settings").onclick = () => { store.save(data); $("settings").classList.remove("open"); renderChores(); renderPeople(); };
-$("reset-stars").onclick = () => {
-  if (!confirm("Reset all ⭐ star totals to zero?")) return;
-  data.stars = {}; data.starsToday = {};
-  store.save(data); renderChoresEditor(); renderPeople();
-};
-$("reset-all").onclick = () => {
-  if (!confirm("Erase ALL people, chores and stars on this tablet?")) return;
-  localStorage.removeItem("familyhub");
-  location.reload();
-};
 
-/* ---------- calendar mode tabs ---------- */
-document.querySelectorAll(".cal-tabs button").forEach(b => {
-  b.onclick = () => {
-    document.querySelectorAll(".cal-tabs button").forEach(x => x.classList.remove("active"));
-    b.classList.add("active");
-    calMode = b.dataset.mode;
-    renderCalendar();
-  };
-});
+/* ---------- optional GitHub Gist sync (meals, shopping, todo) ---------- */
+const sync = {
+  token: null, gistId: null, timer: null, pushTimer: null,
+  syncable() { return { meals: data.meals, shopping: data.shopping, todo: data.todo, _ts: data._ts }; },
+
+  init() {
+    this.token = localStorage.getItem("fh_sync_token") || CONFIG.GIST_TOKEN || null;
+    this.gistId = localStorage.getItem("fh_sync_gist") || CONFIG.GIST_ID || null;
+    if (this.token && this.gistId) {
+      this.pull();
+      this.timer = setInterval(() => this.pull(), 60 * 1000);
+    }
+  },
+  setAuth(tok, gid) {
+    this.token = tok; this.gistId = gid;
+    localStorage.setItem("fh_sync_token", tok || "");
+    localStorage.setItem("fh_sync_gist", gid || "");
+    if (this.timer) clearInterval(this.timer);
+    if (tok && gid) {
+      this.pull();
+      this.timer = setInterval(() => this.pull(), 60 * 1000);
+      syncStatus("✓ Connected — lists sync every minute", "ok");
+    } else {
+      syncStatus("Disconnected", "");
+    }
+  },
+  pushSoon() {
+    if (!(this.token && this.gistId)) return;
+    clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(() => this.push(), 2000);
+  },
+  headers() { return { "Authorization": "token " + this.token, "Content-Type": "application/json", "Accept": "application/vnd.github+json" }; },
+
+  async createGist() {
+    const r = await fetch("https://api.github.com/gists", {
+      method: "POST", headers: this.headers(),
+      body: JSON.stringify({
+        description: "Family Hub sync (meals / shopping / todo)",
+        public: false,
+        files: { "family-hub.json": { content: JSON.stringify(this.syncable()) } }
+      })
+    });
+    if (!r.ok) throw new Error("create failed: " + r.status);
+    return (await r.json()).id;
+  },
+  async pull() {
+    if (!(this.token && this.gistId)) return;
+    try {
+      const r = await fetch("https://api.github.com/gists/" + this.gistId, { headers: this.headers() });
+      if (!r.ok) { if (r.status !== 403) syncStatus("Sync error " + r.status, "err"); return; }
+      const g = await r.json();
+      const content = g.files && g.files["family-hub.json"] && g.files["family-hub.json"].content;
+      if (!content) return;
+      const remote = JSON.parse(content);
+      if ((remote._ts || 0) > (data._ts || 0)) {
+        data.meals = remote.meals || {};
+        data.shopping = remote.shopping || [];
+        data.todo = remote.todo || [];
+        data._ts = remote._ts || 0;
+        store.save(data);
+        renderMeals(); renderList("shopping", "shop-list"); renderList("todo", "todo-list");
+      }
+    } catch (e) { console.warn("sync pull:", e.message); }
+  },
+  async push() {
+    if (!(this.token && this.gistId)) return;
+    try {
+      await fetch("https://api.github.com/gists/" + this.gistId, {
+        method: "PATCH", headers: this.headers(),
+        body: JSON.stringify({ files: { "family-hub.json": { content: JSON.stringify(this.syncable()) } } })
+      });
+    } catch (e) { console.warn("sync push:", e.message); }
+  }
+};
+function syncStatus(text, cls) {
+  const el = $("sync-status");
+  el.textContent = text;
+  el.className = cls;
+}
+$("sync-connect").onclick = async () => {
+  const tok = $("sync-token").value.trim();
+  const gid = $("sync-gist").value.trim();
+  if (!tok) { syncStatus("Paste a GitHub token first (gist scope).", "err"); return; }
+  syncStatus("Connecting…", "");
+  if (gid) {
+    sync.setAuth(tok, gid);
+    const r = await fetch("https://api.github.com/gists/" + gid, { headers: sync.headers() });
+    syncStatus(r.ok ? "✓ Connected to existing Gist" : "Could not read that Gist (" + r.status + ")", r.ok ? "ok" : "err");
+  } else {
+    try {
+      const newId = await sync.createGist();
+      $("sync-gist").value = newId;
+      sync.setAuth(tok, newId);
+      syncStatus("✓ Sync created — paste this Gist ID on your other devices: " + newId, "ok");
+    } catch (e) { syncStatus("Could not create Gist — check the token has gist scope. " + e.message, "err"); }
+  }
+};
+$("sync-now").onclick = async () => {
+  if (!(sync.token && sync.gistId)) { syncStatus("Not connected.", "err"); return; }
+  await sync.push(); await sync.pull();
+  syncStatus("✓ Synced now", "ok");
+};
+$("sync-disconnect").onclick = () => {
+  sync.setAuth("", "");
+  $("sync-token").value = ""; $("sync-gist").value = "";
+};
 
 /* ---------- boot ---------- */
 tickClock();
 setInterval(tickClock, 1000);
 rolloverDay();
+applyTheme();
 renderPeople();
 renderChores();
+renderMeals();
+renderList("shopping", "shop-list");
+renderList("todo", "todo-list");
 renderCalendar();
 loadWeather();
-setInterval(loadWeather, 10 * 60 * 1000);   // weather refresh every 10 min
-setInterval(() => { rolloverDay(); renderChores(); }, 60 * 1000); // midnight chore reset
-// keep the browser up to date even if it dozes
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { tickClock(); loadWeather(); } });
+setInterval(loadWeather, 10 * 60 * 1000);
+setInterval(() => { rolloverDay(); renderChores(); }, 60 * 1000);
+sync.init();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { tickClock(); loadWeather(); if (sync.token) sync.pull(); } });
 </script>
 </body>
 </html>
