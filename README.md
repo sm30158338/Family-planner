@@ -15,7 +15,11 @@ Four tabs sit under the slim header (clock, date, weather):
   highlighted; saves as you type
 - **Shopping** — a checkable list; add by typing and hitting Add (or Enter);
   “Clear ✓” removes completed items
-- **To-Do** — same list mechanics for general tasks
+- **To-Do** — powered by **Google Tasks** (official API, two-way): once signed
+  in with Google, tasks added on the wall appear in the “Family Hub” list in
+  Google Tasks, and anything added from Gmail/Calendar on your phones appears
+  on the wall within a minute. Without sign-in it falls back to a local list.
+  See “One-time Google setup” below.
 
 Everything else:
 - **Weather** — current conditions + 3-day forecast in the header
@@ -26,6 +30,38 @@ Everything else:
   `DIM_START` and `DIM_END` hours (default 10 pm – 6 am) but stays on
 - **Fullscreen** — tap ⛶ in the header (or tap the page once) to hide the
   browser chrome
+
+## One-time Google setup (for the To-Do tab) — ~10 minutes
+The To-Do tab talks to the official Google Tasks API, which needs two things:
+a web address for the dashboard, and an OAuth Client ID.
+
+### 1. Put the dashboard on a web address (GitHub Pages — free)
+1. Repo → **Settings → Pages** → Source: **Deploy from a branch** → branch
+   `main`, folder `/ (root)` → Save
+2. After a minute the dashboard is live at
+   `https://sm30158338.github.io/Family-planner/` — point the Fire tablet's
+   Silk browser there (then tap once for fullscreen as usual). No more
+   downloading files to the tablet: future updates go live by editing
+   `index.html` on GitHub.
+
+### 2. Create the OAuth Client ID
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and
+   create a project (any name, e.g. “Family Hub”)
+2. **APIs & Services → Library** → search “Tasks API” → **Enable**
+3. **APIs & Services → OAuth consent screen**: type **External**, fill in the
+   app name and your email; under **Test users** add both your and your wife's
+   Google accounts (Google shows a “testing” warning you can click through)
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
+   type **Web application**, and add
+   `https://sm30158338.github.io` to **Authorized JavaScript origins**
+5. Copy the Client ID (ends in `.apps.googleusercontent.com`)
+6. On the tablet (and any phone you want to add tasks from): open the
+   dashboard → ⚙️ → **Google Tasks** → paste the Client ID → **Save Client ID**
+7. To-Do tab → **Sign in with Google** → choose the account → done
+
+Each person signs in with their own Google account on their own device; tasks
+land in the same shared “Family Hub” list. Sign-in lasts about an hour and
+refreshes automatically while the page is open.
 
 ## Syncing lists between phones and the tablet (optional)
 The Meals / Shopping / To-Do tabs live on each device by default. To sync them
