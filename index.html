@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Family Hub</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   /* ============ themes ============ */
   :root, html[data-theme="paper"] {
@@ -313,6 +314,11 @@
     <div class="view" id="view-todo">
       <div class="card">
         <h2>To-do list <span class="spacer"></span></h2>
+        <div id="gt-bar" style="display:flex; align-items:center; gap:8px; padding:0 18px 10px; flex-wrap:wrap">
+          <button class="btn small" id="gt-signin" style="display:none">Sign in with Google</button>
+          <button class="btn ghost small" id="gt-signout" style="display:none">Sign out</button>
+          <span class="settings-note" id="gt-status" style="margin:0"></span>
+        </div>
         <div class="list-add">
           <input type="text" id="todo-input" placeholder="Add a task…">
           <button class="btn" id="todo-add">Add</button>
@@ -374,6 +380,17 @@
     </div>
 
     <div class="settings-section">
+      <h4>Google Tasks (To-Do tab)</h4>
+      <div class="settings-note">Paste an OAuth Client ID (type “Web application”) from
+        console.cloud.google.com — see the README. Its “Authorized JavaScript origins”
+        must include this page's address (e.g. https://sm30158338.github.io).</div>
+      <input type="text" id="gt-client" placeholder="…apps.googleusercontent.com">
+      <div class="row-flex">
+        <button class="btn small" id="gt-save-client">Save Client ID</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h4>Reset</h4>
       <button class="btn ghost" id="reset-stars">Reset ⭐ star totals</button>
       <button class="btn ghost" id="reset-all" style="margin-left:8px">Reset everything</button>
@@ -404,6 +421,11 @@ const CONFIG = {
   /* Optional default sync (can also be set in Settings on the tablet) */
   GIST_TOKEN: "",
   GIST_ID: "",
+  /* Google Tasks (official API). Create an OAuth Client ID (type "Web application")
+     at console.cloud.google.com and add your dashboard's web address
+     (e.g. https://sm30158338.github.io) to its "Authorized JavaScript origins".
+     Paste the Client ID here — or in Settings on the tablet. */
+  GTASK_CLIENT_ID: "",
   PALETTE: ["#e26ba8", "#5b9bd5", "#7ac74f", "#b57edc", "#c98a3d", "#58c9b9"]  // pink first!
 };
 
@@ -629,7 +651,130 @@ function wireList(listName, inputId, addId, clearId, viewId) {
   };
 }
 wireList("shopping", "shop-input", "shop-add", "shop-clear", "shop-list");
-wireList("todo", "todo-input", "todo-add", "todo-clear", "todo-list");
+
+/* ---------- Google Tasks (official API) backs the To-Do tab when signed in ---------- */
+const gt = {
+  token: null, expiry: 0, listId: null, tasks: [], pollTimer: null, _tc: null,
+  get clientId() { return (localStorage.getItem("fh_gt_client") || "").trim() || CONFIG.GTASK_CLIENT_ID || ""; },
+  connected() { return !!this.token && Date.now() < this.expiry; },
+  h() { return { "Authorization": "Bearer " + this.token, "Content-Type": "application/json" }; },
+  async ensureList() {
+    const r = await fetch("https://tasks.googleapis.com/tasks/v1/users/@me/lists", { headers: this.h() });
+    const j = await r.json();
+    let list = (j.items || []).find(l => l.title === "Family Hub");
+    if (!list) {
+      const c = await fetch("https://tasks.googleapis.com/tasks/v1/users/@me/lists", {
+        method: "POST", headers: this.h(), body: JSON.stringify({ title: "Family Hub" }) });
+      list = await c.json();
+    }
+    this.listId = list.id;
+  },
+  async refresh() {
+    if (!this.connected() || !this.listId) return;
+    try {
+      const r = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${this.listId}/tasks?showCompleted=false&showHidden=false&maxResults=100`, { headers: this.h() });
+      if (r.status === 401) { this.signOut(); return; }
+      const j = await r.json();
+      this.tasks = (j.items || []).map(t => ({ id: t.id, text: t.title, done: t.status === "completed" }));
+      renderTodo();
+    } catch (e) { console.warn("gtasks refresh:", e.message); }
+  },
+  async add(text) {
+    if (!this.connected() || !this.listId) return;
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${this.listId}/tasks`, {
+      method: "POST", headers: this.h(), body: JSON.stringify({ title: text }) });
+    await this.refresh();
+  },
+  async toggle(item) {
+    const nowDone = !item.done;
+    const body = { status: nowDone ? "completed" : "needsAction" };
+    if (nowDone) body.completed = new Date().toISOString();
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${this.listId}/tasks/${item.id}`, {
+      method: "PATCH", headers: this.h(), body: JSON.stringify(body) });
+    await this.refresh();
+  },
+  async del(item) {
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${this.listId}/tasks/${item.id}`, {
+      method: "DELETE", headers: this.h() });
+    await this.refresh();
+  },
+  requestToken(prompt) {
+    if (!this.clientId) { gtStatus("Needs an OAuth Client ID in Settings → Google Tasks (and the dashboard must be served from a web address, e.g. GitHub Pages).", "err"); return; }
+    if (!window.google || !google.accounts || !google.accounts.oauth2) { gtStatus("Google sign-in library not loaded yet — wait a second and try again.", "err"); return; }
+    if (!this._tc) {
+      this._tc = google.accounts.oauth2.initTokenClient({
+        client_id: this.clientId,
+        scope: "https://www.googleapis.com/auth/tasks",
+        callback: async (resp) => {
+          if (resp && resp.access_token) {
+            this.token = resp.access_token;
+            this.expiry = Date.now() + (parseInt(resp.expires_in || "3600", 10) - 60) * 1000;
+            this._tc = null;
+            try { await this.ensureList(); } catch (e) { gtStatus("Signed in, but listing tasks failed: " + e.message, "err"); return; }
+            await this.refresh();
+            if (this.pollTimer) clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(() => this.refresh(), 60 * 1000);
+            gtMode();
+            gtStatus("✓ Signed in — syncing the “Family Hub” list in Google Tasks", "ok");
+          } else { gtStatus("Sign-in was cancelled.", ""); }
+        },
+        error_callback: () => { gtStatus("Sign-in didn't complete — check the Client ID's “Authorized JavaScript origins” includes this page's address.", "err"); }
+      });
+    }
+    this._tc.requestAccessToken({ prompt: prompt || "" });
+  },
+  signOut() {
+    if (this.token && window.google && google.accounts) { try { google.accounts.oauth2.revoke(this.token, () => {}); } catch (e) {} }
+    this.token = null; this.expiry = 0; this.listId = null; this.tasks = [];
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = null;
+    gtMode(); renderTodo();
+  }
+};
+function gtStatus(text, cls) { const el = $("gt-status"); el.textContent = text; el.className = "settings-note " + (cls || ""); }
+function gtMode() {
+  const on = gt.connected();
+  $("gt-signin").style.display = on ? "none" : "";
+  $("gt-signout").style.display = on ? "" : "none";
+  $("todo-clear").style.display = on ? "none" : "";
+  $("todo-input").placeholder = on ? "Add a task to Google Tasks…" : "Add a task…";
+}
+$("gt-signin").onclick = () => gt.requestToken("");
+$("gt-signout").onclick = () => gt.signOut();
+
+function renderTodo() {
+  if (gt.connected()) {
+    const body = $("todo-list");
+    body.innerHTML = "";
+    if (!gt.tasks.length) {
+      body.innerHTML = "<div class='empty-note'>All clear! Tasks added here appear in the “Family Hub” list in Google Tasks — and anything added from Gmail or your phones appears here.</div>";
+      return;
+    }
+    gt.tasks.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "item-row" + (t.done ? " done" : "");
+      const box = document.createElement("div"); box.className = "box"; box.textContent = "✓";
+      const label = document.createElement("div"); label.className = "label"; label.textContent = t.text;
+      const del = document.createElement("button"); del.className = "del"; del.textContent = "✕";
+      del.onclick = (e) => { e.stopPropagation(); gt.del(t); };
+      row.onclick = () => gt.toggle(t);
+      row.append(box, label, del);
+      body.appendChild(row);
+    });
+  } else {
+    renderList("todo", "todo-list");
+  }
+}
+/* mode-aware To-Do add/clear (Google Tasks when signed in, local list otherwise) */
+$("todo-add").onclick = () => {
+  const v = $("todo-input").value.trim();
+  if (!v) return;
+  if (gt.connected()) { gt.add(v); } else { data.todo.push({ text: v, done: false }); save(); }
+  $("todo-input").value = "";
+  renderTodo();
+};
+$("todo-input").onkeydown = (e) => { if (e.key === "Enter") $("todo-add").click(); };
+$("todo-clear").onclick = () => { data.todo = data.todo.filter(x => !x.done); save(); renderTodo(); };
 
 /* ---------- chores ---------- */
 let filterIndex = null;
@@ -699,6 +844,7 @@ function renderChores() {
 function openSettings() {
   $("sync-token").value = sync.token || "";
   $("sync-gist").value = sync.gistId || "";
+  $("gt-client").value = gt.clientId || "";
   renderPeopleEditor();
   renderChoresEditor();
   fillWhoSelect();
@@ -767,7 +913,7 @@ $("add-chore").onclick = () => {
 $("save-settings").onclick = () => {
   save();
   $("settings").classList.remove("open");
-  renderChores(); renderPeople(); renderMeals(); renderList("shopping", "shop-list"); renderList("todo", "todo-list");
+  renderChores(); renderPeople(); renderMeals(); renderList("shopping", "shop-list"); renderTodo();
 };
 $("reset-stars").onclick = () => {
   if (!confirm("Reset all ⭐ star totals to zero?")) return;
@@ -799,7 +945,12 @@ document.body.addEventListener("touchend", function once() {
 /* ---------- optional GitHub Gist sync (meals, shopping, todo) ---------- */
 const sync = {
   token: null, gistId: null, timer: null, pushTimer: null,
-  syncable() { return { meals: data.meals, shopping: data.shopping, todo: data.todo, _ts: data._ts }; },
+  syncable() {
+    // To-do lives in Google Tasks once signed in, so it leaves the Gist payload
+    const s = { meals: data.meals, shopping: data.shopping, _ts: data._ts };
+    if (!gt.connected()) s.todo = data.todo;
+    return s;
+  },
 
   init() {
     this.token = localStorage.getItem("fh_sync_token") || CONFIG.GIST_TOKEN || null;
@@ -853,10 +1004,10 @@ const sync = {
       if ((remote._ts || 0) > (data._ts || 0)) {
         data.meals = remote.meals || {};
         data.shopping = remote.shopping || [];
-        data.todo = remote.todo || [];
+        if (remote.todo && !gt.connected()) data.todo = remote.todo;
         data._ts = remote._ts || 0;
         store.save(data);
-        renderMeals(); renderList("shopping", "shop-list"); renderList("todo", "todo-list");
+        renderMeals(); renderList("shopping", "shop-list"); renderTodo();
       }
     } catch (e) { console.warn("sync pull:", e.message); }
   },
@@ -902,6 +1053,10 @@ $("sync-disconnect").onclick = () => {
   sync.setAuth("", "");
   $("sync-token").value = ""; $("sync-gist").value = "";
 };
+$("gt-save-client").onclick = () => {
+  localStorage.setItem("fh_gt_client", $("gt-client").value.trim());
+  gtStatus("Client ID saved. Use “Sign in with Google” on the To-Do tab.", "ok");
+};
 
 /* ---------- boot ---------- */
 tickClock();
@@ -912,13 +1067,16 @@ renderPeople();
 renderChores();
 renderMeals();
 renderList("shopping", "shop-list");
-renderList("todo", "todo-list");
+renderTodo();
+gtMode();
 renderCalendar();
 loadWeather();
 setInterval(loadWeather, 10 * 60 * 1000);
 setInterval(() => { rolloverDay(); renderChores(); }, 60 * 1000);
 sync.init();
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { tickClock(); loadWeather(); if (sync.token) sync.pull(); } });
+/* silent Google Tasks sign-in when possible (needs an http(s) origin + saved Client ID) */
+if (gt.clientId && location.protocol.indexOf("http") === 0) setTimeout(() => gt.requestToken(""), 1200);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { tickClock(); loadWeather(); if (sync.token) sync.pull(); if (gt.connected()) gt.refresh(); } });
 </script>
 </body>
 </html>
